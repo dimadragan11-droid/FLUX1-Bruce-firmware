@@ -1,4 +1,4 @@
-name: Build Firmware
+name: Build FLUX Firmware
 
 on:
   workflow_dispatch:
@@ -7,10 +7,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout ORIGINAL Bruce
         uses: actions/checkout@v4
         with:
+          repository: 'BruceDevices/firmware'
+          ref: 'dev' # Тянем самую свежую ветку 1.16 с исправленным джеммером
           submodules: recursive
+
+      - name: Inject FLUX Pins Config
+        run: |
+          # Вписываем ваши кастомные пины прямо в конфигурацию для ESP32-S3 перед сборкой.
+          # ВНИМАНИЕ: Если вы знаете точный GPIO кнопки OK (например, 21), замените число ниже.
+          # Пока ставим условные популярные для таких плат пины:
+          sed -i 's/#define SEL_BTN.*/#define BUTTON_SELECT 1/g' include/pins_config.h
+          sed -i 's/#define ESC_BTN.*/#define BUTTON_DOWN 0/g' include/pins_config.h
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -23,10 +33,10 @@ jobs:
           pip install platformio
 
       - name: Run PlatformIO Build
-        run: pio run
+        run: pio run -e esp32s3 # Собираем конкретно под ваш процессор S3
 
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: FLUX-Bruce-Firmware
+          name: FLUX-Bruce-1.16-Fixed
           path: .pio/build/**/*.bin
